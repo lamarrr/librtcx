@@ -10,6 +10,8 @@
 
 namespace nvcxx {
 
+// Implementation helpers
+
 namespace detail {
 
 template <class T>
@@ -22,6 +24,8 @@ concept overflow_integer =
 
 }  // namespace detail
 
+// Result types
+
 template <class T>
 struct overflow_result {
   T value;
@@ -29,6 +33,8 @@ struct overflow_result {
 
   constexpr explicit operator bool() const { return overflow; }
 };
+
+// Conversions
 
 template <detail::overflow_integer To, detail::overflow_integer From>
 constexpr overflow_result<To> overflow_cast(From const& value)
@@ -53,6 +59,25 @@ constexpr overflow_result<To> overflow_cast(From const& value)
   return {static_cast<To>(value), overflow};
 }
 
+// Binary arithmetic
+
+template <detail::overflow_integer T>
+constexpr overflow_result<T> add_overflow(T a, T b)
+{
+  T r = static_cast<T>(static_cast<unsigned __int128>(a) + static_cast<unsigned __int128>(b));
+  return {r,
+          (b > 0 && a > detail::integer_bounds<T>::max() - b) ||
+            (b < 0 && a < detail::integer_bounds<T>::lowest() - b)};
+}
+
+template <detail::overflow_integer T>
+constexpr bool add_overflow(T& result, T a, T b)
+{
+  auto r = add_overflow<T>(a, b);
+  result = r.value;
+  return r.overflow;
+}
+
 template <detail::overflow_integer T>
 constexpr overflow_result<T> sub_overflow(T a, T b)
 {
@@ -75,30 +100,21 @@ constexpr bool sub_overflow(T& result, T a, T b)
 }
 
 template <detail::overflow_integer T>
-constexpr overflow_result<T> neg_overflow(T a)
+constexpr overflow_result<T> mul_overflow(T a, T b)
 {
-  return sub_overflow(T(0), a);
-}
-
-template <detail::overflow_integer T>
-constexpr overflow_result<T> abs_overflow(T a)
-{
-  return a < 0 ? neg_overflow(a) : overflow_result<T>{a, false};
-}
-
-template <detail::overflow_integer T>
-constexpr overflow_result<T> add_overflow(T a, T b)
-{
-  T r = static_cast<T>(static_cast<unsigned __int128>(a) + static_cast<unsigned __int128>(b));
+  if (a == 0 || b == 0) { return {0, false}; }
+  T r = static_cast<T>(static_cast<unsigned __int128>(a) * static_cast<unsigned __int128>(b));
   return {r,
-          (b > 0 && a > detail::integer_bounds<T>::max() - b) ||
-            (b < 0 && a < detail::integer_bounds<T>::lowest() - b)};
+          (a > 0 ? (b > 0 ? a > detail::integer_bounds<T>::max() / b
+                          : b < detail::integer_bounds<T>::lowest() / a)
+                 : (b > 0 ? a < detail::integer_bounds<T>::lowest() / b
+                          : a < detail::integer_bounds<T>::max() / b))};
 }
 
 template <detail::overflow_integer T>
-constexpr bool add_overflow(T& result, T a, T b)
+constexpr bool mul_overflow(T& result, T a, T b)
 {
-  auto r = add_overflow<T>(a, b);
+  auto r = mul_overflow<T>(a, b);
   result = r.value;
   return r.overflow;
 }
@@ -129,24 +145,18 @@ constexpr overflow_result<T> mod_overflow(T a, T b)
   return {T(a % b), false};
 }
 
+// Unary arithmetic
+
 template <detail::overflow_integer T>
-constexpr overflow_result<T> mul_overflow(T a, T b)
+constexpr overflow_result<T> neg_overflow(T a)
 {
-  if (a == 0 || b == 0) { return {0, false}; }
-  T r = static_cast<T>(static_cast<unsigned __int128>(a) * static_cast<unsigned __int128>(b));
-  return {r,
-          (a > 0 ? (b > 0 ? a > detail::integer_bounds<T>::max() / b
-                          : b < detail::integer_bounds<T>::lowest() / a)
-                 : (b > 0 ? a < detail::integer_bounds<T>::lowest() / b
-                          : a < detail::integer_bounds<T>::max() / b))};
+  return sub_overflow(T(0), a);
 }
 
 template <detail::overflow_integer T>
-constexpr bool mul_overflow(T& result, T a, T b)
+constexpr overflow_result<T> abs_overflow(T a)
 {
-  auto r = mul_overflow<T>(a, b);
-  result = r.value;
-  return r.overflow;
+  return a < 0 ? neg_overflow(a) : overflow_result<T>{a, false};
 }
 
 }  // namespace nvcxx
