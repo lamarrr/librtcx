@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#define LIBNVCXX
 #ifdef NVCXX_AS_STD
 
 namespace nvcxx {
