@@ -9,7 +9,7 @@ A lightweight C++ 20 standard library for CUDA kernels.
 
 # Setup
 
-- NVRTC Flags: 
+- NVRTC Flags:
     - `-std=c++20`
     - `--device-int128`: enables the required 128-bit integer support.
     - `--device-as-default-execution-space`: treats unannotated library functions as device functions.
