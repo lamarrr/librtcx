@@ -16,7 +16,8 @@ A lightweight C++ 20 standard library for CUDA kernels.
     - `-DNVCXX_AS_STD` (To make `nvcxx` to populate the `cuda::std`, `cuda::` and `std::` namespaces, optional)
     - `-Ilibnvcxx`
     - `-Ilibnvcxx/nvcxx`
-    - `-Ilibnvcxx/nvcxx/std`
+    - `-Ilibnvcxx/nvcxx/cuda`
+    - `-Ilibnvcxx/nvcxx/cuda/std`
     - `--minimal`
 
 
